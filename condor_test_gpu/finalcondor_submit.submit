@@ -1,0 +1,17 @@
+batch_name = recon
+executable = /home/huangp/deeprecon/main.sh
+#nice_user = true
+priority = 100
+request_memory = 32GB
+request_cpus = 2
+getenv = False
+log        = /data/snoplus2/weiiiii/uv/deeprecon/results/train1/recon.log
+output     = /data/snoplus2/weiiiii/uv/deeprecon/results/train1/recon.out
+error      = /data/snoplus2/weiiiii/uv/deeprecon/results/train1/recon.err
+should_transfer_files = yes
+transfer_executable = False
+stream_output = True
+stream_error = True 
+request_gpus = 1
+
+queue

@@ -1,0 +1,95 @@
+{
+  "model": {
+    "class_path": "model.hitsrecon.SNOPosEnegyRecon",
+    "init_args": {
+      "num_heads": 4,
+      "num_layers": 4,
+      "n_pmts": 9728,
+      "d_model": 64,
+      "ff_dim": 128
+    }
+  },
+  "train": {
+    "seed": 801,
+    "project": "TestRecon",
+    "name": "TestRecon",
+    "entity": "po-wei-huang-university-of-oxford",
+    "tags": "March",
+    "wandbcachepath": "/data/snoplus2/weiiiii/uv/deeprecon/wandb_logs",
+    "checkpoint_dir": "/data/snoplus2/weiiiii/uv/deeprecon/results/test1/ckpt",
+    "device": "cuda",
+    "metric_monitor": {
+      "class_path": "metrics.metric_monitor.PositionEnergyMonitor"
+      },
+    "train_dataloader": {
+      "class_path": "torch.utils.data.DataLoader",
+      "collate_fn_name": "collate_varlen",
+      "init_args": {
+        "dataset": {
+          "class_path": "utils.datasets.PosEnergyRecoDataset",
+          "init_args": {
+            "file_paths": "/data/snoplus2/weiiiii/electron_bismsb_0dot5_10/Ntuple/Bronze/37121*ntuple.root",
+            "tree_name": "output",
+            "truth_expressions": ["mcPosx", "mcPosy", "mcPosz", "mcPosr", "mcEdepQuenched", "mctime1"],
+            "buffer_size": 10000,
+            "cache": true
+          }
+        },
+        "batch_size": 10,
+        "num_workers": 1,
+        "shuffle": false,
+        "pin_memory": true
+      }
+    },
+    "val_dataloader": {
+      "class_path": "torch.utils.data.DataLoader",
+      "collate_fn_name": "collate_varlen",
+      "init_args": {
+        "dataset": {
+          "class_path": "utils.datasets.PosEnergyRecoDataset",
+          "init_args": {
+            "file_paths": "/data/snoplus2/weiiiii/electron_bismsb_0dot5_10/ValNtuple/ValBronze/37121*.ntuple.root",
+            "tree_name": "output",
+            "truth_expressions": ["mcPosx", "mcPosy", "mcPosz", "mcPosr", "mcEdepQuenched", "mctime1"],
+            "buffer_size": 100,
+            "cache": true
+          }
+        },
+        "batch_size": 10,
+        "num_workers": 1,
+        "shuffle": false,
+        "pin_memory": true
+      }
+    },
+    "val_num_steps": 10,
+    "num_steps": 50,
+    "optimiser": {
+      "class_path": "torch.optim.Adam",
+      "init_args": {
+        "lr": 0.0005,
+        "betas": [0.9, 0.98],
+        "eps": 1e-09
+      }
+    },
+    "scheduler": {
+      "class_path": "torch.optim.lr_scheduler.OneCycleLR",
+      "init_args": {
+        "max_lr": 0.001,
+        "total_steps": 50
+      }
+    },
+    "val_norm": false,
+    "loss_fn": {
+      "class_path": "metrics.recon.ResolutionLoss"
+    },
+    "val_metric": {
+      "class_path": "metrics.metrics.BatchedMetric",
+      "init_args": {
+        "metric_fn": {
+          "class_path": "metrics.recon.ResolutionLoss"
+        }
+      }
+    },
+    "max_grad_norm": 1
+  }
+}

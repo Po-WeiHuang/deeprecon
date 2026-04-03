@@ -1,0 +1,119 @@
+# Needed definitions
+# base_dir 
+# checkpoint_dir
+
+
+{% set train_files = (base_dir, "mlpca/train/*.mlpca.root") | path_join %}
+{% set val_files = (base_dir, "mlpca/val/*.mlpca.root") | path_join %}
+{% set pmt_valid_file = (base_dir, "pmt_valid.txt") | path_join %}
+
+model:
+    class_path: deepsno.models.hit_time_autoencoder.HitTimeAutoEncoder
+    init_args:
+        c_av: &c_av 183.5
+        c_water: 217.55
+        fix_c: true
+        c_av_grad: 0.0
+        av_radius: 6060.5
+        pmt_valid_file: {{ pmt_valid_file }}
+        norm_dict:
+            time_scale: &time_scale 300
+            position_scale: &position_scale 6000
+            qhs_scale: &qhs_scale 200
+        position_reconstructor:
+            {% set n_pmts = 9728 %}
+            {% set d_model = 64 %}
+            class_path: deepsno.models.position_reco.PositionReco
+            init_args:
+                predict_time: true
+                n_pmts: {{ n_pmts }}
+                d_model: {{ d_model }}
+                nhead: 4
+                dim_feedforward: 128
+                num_layers: 6
+                dropout: 0.1
+                hit_time_embedding_dim: 512
+        time_walk:
+            class_path: deepsno.models.hit_time_autoencoder.ExpTimeWalk
+            init_args:
+                n_pmts: {{ n_pmts }}
+                a_init: &a_init 0.021
+                b_init: &b_init 0.075
+                c_init: &c_init -0.003
+                d_init: &d_init 0.0
+                b_beta: 10
+                c_beta: 10
+                enable_grad_term: false
+
+train:
+    entity: scottdegraw
+    project: mlpca
+    tags: [mlpca, transformer, production]   
+
+    seed: 783
+    profile: false
+    checkpoint_dir: {{ checkpoint_dir }}
+    device: &device cuda
+    train_dataloader: &train_dataloader
+        class_path: torch.utils.data.DataLoader
+        init_args: &train_dataloader_init_args
+            dataset: &train_dataset
+                class_path: deepsno.data.datasets.HitTimeAEDataset
+                init_args: &train_dataset_init_args
+                    file_paths: {{ train_files }}
+                    tree_name: mlpca
+                    truth_expressions: [av_offset]
+                    buffer_size: 10000
+                    context_len: 256
+                    cache: true
+                    pmt_valid_file: {{ pmt_valid_file }}
+            batch_size: 2048
+            num_workers: 32
+            shuffle: false
+            pin_memory: true
+            drop_last: true
+
+    val_dataloader:
+        <<: *train_dataloader
+        init_args:
+            dataset: 
+                <<: *train_dataset
+                init_args:
+                    <<: *train_dataset_init_args
+                    file_paths: {{ val_files }}
+            <<: *train_dataloader_init_args
+            batch_size: 8192
+            num_workers: 1
+
+    val_num_steps: 10000
+    num_steps: &num_steps 500000
+
+    optimizer:
+        class_path: torch.optim.Adam
+        init_args:
+            lr: 5e-4
+            betas: [0.9, 0.98]
+            eps: 1e-9
+    scheduler:
+        class_path: torch.optim.lr_scheduler.OneCycleLR
+        init_args:
+            max_lr: 1e-3
+            total_steps: *num_steps
+    val_norm: false
+    loss_fn: &train_loss_fn
+        class_path: deepsno.metrics.hit_time_autoencoder.TimeResidualLoss
+        init_args:
+            mu: 3.23
+            sigma: 3.5
+            a: 3.71
+            b: 0.436
+            offset: 0
+
+    train_unnorm: true
+
+    val_metric:
+        class_path: deepsno.metrics.metrics.BatchedMetric
+        init_args:
+            metric_fn: *train_loss_fn
+
+    max_grad_norm: 1

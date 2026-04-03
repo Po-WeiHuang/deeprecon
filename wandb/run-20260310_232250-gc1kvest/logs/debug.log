@@ -1,0 +1,5 @@
+2026-03-10 23:22:50,261 INFO    MainThread:238499 [wandb_init.py:setup_run_log_directory():717] Logging user logs to /home/huangp/deeprecon/wandb/run-20260310_232250-gc1kvest/logs/debug.log
+2026-03-10 23:22:50,261 INFO    MainThread:238499 [wandb_init.py:setup_run_log_directory():718] Logging internal logs to /home/huangp/deeprecon/wandb/run-20260310_232250-gc1kvest/logs/debug-internal.log
+2026-03-10 23:22:50,261 INFO    MainThread:238499 [wandb_init.py:init():844] calling init triggers
+2026-03-10 23:22:50,261 INFO    MainThread:238499 [wandb_init.py:init():849] wandb.init called with sweep_config: {}
+config: {'_wandb': {}}

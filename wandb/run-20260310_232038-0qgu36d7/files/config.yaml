@@ -1,0 +1,140 @@
+_wandb:
+    value:
+        cli_version: 0.25.0
+        e:
+            ct7p7yhrbm86xcqvn960xwkj9ffz3sac:
+                codePath: main.py
+                codePathLocal: main.py
+                cpu_count: 32
+                cpu_count_logical: 64
+                cudaVersion: "13.1"
+                disk:
+                    /:
+                        total: "68651319296"
+                        used: "47609171968"
+                email: po-wei.huang@physics.ox.ac.uk
+                executable: /home/huangp/deeprecon/.venv/bin/python
+                gpu: NVIDIA A100-PCIE-40GB
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Ampere
+                      cudaCores: 6912
+                      memoryTotal: "42949672960"
+                      name: NVIDIA A100-PCIE-40GB
+                      uuid: GPU-edefea70-5e26-b1af-889e-7c01a66ea47b
+                host: pplxwngpu001.physics.ox.ac.uk
+                memory:
+                    total: "134061367296"
+                os: Linux-5.14.0-611.16.1.el9_7.x86_64-x86_64-with-glibc2.34
+                program: /home/huangp/deeprecon/main.py
+                python: CPython 3.13.12
+                root: /home/huangp/deeprecon
+                startedAt: "2026-03-10T23:20:38.946540Z"
+                writerId: ct7p7yhrbm86xcqvn960xwkj9ffz3sac
+        m: []
+        python_version: 3.13.12
+        t:
+            "1":
+                - 1
+                - 41
+            "2":
+                - 1
+                - 41
+            "3":
+                - 13
+                - 16
+                - 24
+            "4": 3.13.12
+            "5": 0.25.0
+            "12": 0.25.0
+            "13": linux-x86_64
+model:
+    value:
+        class_path: model.hitsrecon.SNOPosEnegyRecon
+        init_args:
+            d_model: 64
+            ff_dim: 128
+            n_pmts: 9728
+            num_heads: 4
+            num_layers: 4
+train:
+    value:
+        checkpoint_dir: /data/snoplus2/weiiiii/uv/deeprecon/results/train1/ckpt
+        device: cuda
+        entity: po-wei-huang-university-of-oxford
+        loss_fn:
+            class_path: metrics.recon.ResolutionLoss
+        max_grad_norm: 1
+        metric_monitor:
+            class_path: metrics.metric_monitor.PositionEnergyMonitor
+        name: TrainRecon
+        num_steps: 500000
+        optimiser:
+            class_path: torch.optim.Adam
+            init_args:
+                betas:
+                    - 0.9
+                    - 0.98
+                eps: 1e-09
+                lr: 0.0005
+        project: TrainRecon
+        scheduler:
+            class_path: torch.optim.lr_scheduler.OneCycleLR
+            init_args:
+                max_lr: 0.001
+                total_steps: 500000
+        seed: 801
+        tags: March
+        train_dataloader:
+            class_path: torch.utils.data.DataLoader
+            collate_fn_name: collate_varlen
+            init_args:
+                batch_size: 2048
+                dataset:
+                    class_path: utils.datasets.PosEnergyRecoDataset
+                    init_args:
+                        buffer_size: 10000
+                        cache: true
+                        file_paths: /data/snoplus2/weiiiii/electron_bismsb_0dot5_10/Ntuple/Bronze/*ntuple.root
+                        new_cache_path: /data/snoplus2/weiiiii/uv/deeprecon/train_data_cache
+                        tree_name: output
+                        truth_expressions:
+                            - mcPosx
+                            - mcPosy
+                            - mcPosz
+                            - mcPosr
+                            - mcEdepQuenched
+                            - mctime1
+                num_workers: 32
+                pin_memory: true
+                shuffle: false
+        val_dataloader:
+            class_path: torch.utils.data.DataLoader
+            collate_fn_name: collate_varlen
+            init_args:
+                batch_size: 8192
+                dataset:
+                    class_path: utils.datasets.PosEnergyRecoDataset
+                    init_args:
+                        buffer_size: 10000
+                        cache: true
+                        file_paths: /data/snoplus2/weiiiii/electron_bismsb_0dot5_10/ValNtuple/ValBronze/*.ntuple.root
+                        tree_name: output
+                        truth_expressions:
+                            - mcPosx
+                            - mcPosy
+                            - mcPosz
+                            - mcPosr
+                            - mcEdepQuenched
+                            - mctime1
+                    new_cache_path: /data/snoplus2/weiiiii/uv/deeprecon/val_data_cache
+                num_workers: 8
+                pin_memory: true
+                shuffle: false
+        val_metric:
+            class_path: metrics.metrics.BatchedMetric
+            init_args:
+                metric_fn:
+                    class_path: metrics.recon.ResolutionLoss
+        val_norm: false
+        val_num_steps: 10000
