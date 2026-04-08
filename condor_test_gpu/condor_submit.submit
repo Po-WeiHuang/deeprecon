@@ -3,7 +3,7 @@ executable = /home/huangp/deeprecon/main.sh
 #nice_user = true
 priority = 100
 request_memory = 16GB
-request_cpus = 1
+request_cpus = 16
 getenv = False
 
 request_gpus = 1

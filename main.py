@@ -30,6 +30,13 @@ def main():
     #val_data_path   = config['data']['val_files']
     #pmt_info_path   = config['data']['pmt_valid_file']
     #ckpt_output     = config['train']['checkpoint_dir']
+
+    save_dir = Path("/home/huangp/deeprecon/example_config/train_config")
+    save_dir.mkdir(parents=True, exist_ok=True)
+    config_filename = f"{t_cfg['name']}.json"
+    with open(save_dir/config_filename,"w") as f:
+        json.dump(config, f, indent=4)
+
     
     # 2. Manually Instantiate the Model
     model_cls = get_class(config['model']['class_path'])

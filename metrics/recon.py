@@ -15,4 +15,4 @@ class ResolutionLoss(nn.Module):
         energyloss = F.mse_loss(predict["energy"], truth["energy"])
         evtloss = F.mse_loss(predict["evtime"], truth["evtime"]) 
         return positionloss + energyloss + evtloss , positionloss, energyloss, evtloss
-        #return  1e-3*positionloss + energyloss + 1e-3*evtloss  , positionloss, energyloss, evtloss
+        #return  energyloss   , positionloss, energyloss, evtloss
