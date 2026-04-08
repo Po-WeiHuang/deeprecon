@@ -1,0 +1,115 @@
+{
+    "model": {
+        "class_path": "model.hitsrecon.SNOPosEnegyRecon",
+        "init_args": {
+            "num_heads": 4,
+            "num_layers": 6,
+            "n_pmts": 9728,
+            "d_model": 64,
+            "ff_dim": 512,
+            "dropout": 0.2
+        }
+    },
+    "train": {
+        "seed": 801,
+        "project": "TrainRecon",
+        "name": "OnelayDec_FitValidPerData",
+        "entity": "po-wei-huang-university-of-oxford",
+        "tags": "March",
+        "wandbcachepath": "/data/snoplus2/weiiiii/uv/deeprecon/wandb_logs",
+        "checkpoint_dir": "/data/snoplus2/weiiiii/uv/deeprecon/results/train1/ckpt",
+        "device": "cuda",
+        "metric_monitor": {
+            "class_path": "metrics.metric_monitor.PositionEnergyMonitor"
+        },
+        "train_dataloader": {
+            "class_path": "torch.utils.data.DataLoader",
+            "collate_fn_name": "collate_varlen",
+            "init_args": {
+                "dataset": {
+                    "class_path": "utils.datasets.PosEnergyRecoDataset",
+                    "init_args": {
+                        "file_paths": "/data/snoplus2/weiiiii/electron_bismsb_0dot5_10/Ntuple/Perfect/*ntuple.root",
+                        "tree_name": "output",
+                        "truth_expressions": [
+                            "mcPosx",
+                            "mcPosy",
+                            "mcPosz",
+                            "mcPosr",
+                            "mcEdepQuenched",
+                            "mctime1"
+                        ],
+                        "buffer_size": 10000,
+                        "cache": true
+                    }
+                },
+                "batch_size": 512,
+                "num_workers": 16,
+                "shuffle": false,
+                "pin_memory": true
+            }
+        },
+        "val_dataloader": {
+            "class_path": "torch.utils.data.DataLoader",
+            "collate_fn_name": "collate_varlen",
+            "init_args": {
+                "dataset": {
+                    "class_path": "utils.datasets.PosEnergyRecoDataset",
+                    "init_args": {
+                        "file_paths": "/data/snoplus2/weiiiii/electron_bismsb_0dot5_10/ValNtuple/ValPerfect/*.ntuple.root",
+                        "tree_name": "output",
+                        "truth_expressions": [
+                            "mcPosx",
+                            "mcPosy",
+                            "mcPosz",
+                            "mcPosr",
+                            "mcEdepQuenched",
+                            "mctime1"
+                        ],
+                        "buffer_size": 10000,
+                        "cache": true
+                    }
+                },
+                "batch_size": 1024,
+                "num_workers": 16,
+                "shuffle": false,
+                "pin_memory": true
+            }
+        },
+        "val_num_steps": 5000,
+        "num_steps": 105000,
+        "optimiser": {
+            "class_path": "torch.optim.AdamW",
+            "init_args": {
+                "lr": 0.0003,
+                "weight_decay": 0.01,
+                "betas": [
+                    0.9,
+                    0.98
+                ],
+                "eps": 1e-09
+            }
+        },
+        "scheduler": {
+            "class_path": "torch.optim.lr_scheduler.OneCycleLR",
+            "init_args": {
+                "max_lr": 0.0003,
+                "pct_start": 0.2,
+                "total_steps": 105000
+            }
+        },
+        "val_norm": false,
+        "loss_fn": {
+            "class_path": "metrics.recon.ResolutionLoss"
+        },
+        "val_metric": {
+            "class_path": "metrics.metrics.BatchedMetric",
+            "init_args": {
+                "metric_fn": {
+                    "class_path": "metrics.recon.ResolutionLoss"
+                }
+            }
+        },
+        "max_grad_norm": 1
+    }
+}

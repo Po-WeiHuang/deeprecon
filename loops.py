@@ -84,18 +84,23 @@ def validate(
             metric_monitor.update(predict=predict, truth=truth)
         step += 1
         
-
+    val_wandb_data = {}
     if loss_fn is not None:
-        run.log({"Loss/valtotloss": rolling_loss / step}, step=global_step)
-        run.log({"Loss/valposloss": rolling_posloss / step}, step=global_step)
-        run.log({"Loss/valeloss": rolling_eloss / step}, step=global_step)
-        run.log({"Loss/valevtloss": rolling_evtloss / step}, step=global_step)
-        rolling_evtloss = 0.0
+        val_wandb_data.update({
+           "Loss/valtotloss": rolling_loss / step,
+            "Loss/valposloss": rolling_posloss / step,
+            "Loss/valeloss": rolling_eloss / step,
+            "Loss/valevtloss": rolling_evtloss / step 
+        })
+        
+        
 
         
     if metric_monitor is not None:
-        metric_monitor.compute(global_step)
-    
+        monitor_data = metric_monitor.compute(global_step)
+        val_wandb_data.update(monitor_data)
+    run.log(val_wandb_data, step=global_step)
+
     return metric.compute()
 
 
@@ -138,7 +143,7 @@ def train(
     training = True
     trainmetric_monitor.name_prefix = "train_metrics"
     valmetric_monitor.name_prefix = "validation_metrics"
-
+    trainmetric_monitor = None
 
     with tqdm.tqdm(desc="Train", total=num_steps, **TQDM_KWARGS) as progress_bar:
         while training:
@@ -170,20 +175,18 @@ def train(
                 if not torch.isfinite(loss):
                     raise ValueError("Training loss is not finite")
                 if log_this_step:
-                    run.log({"Loss/traintotloss": rolling_loss / log_interval}, step=step_num)
+                    train_logs = {
+                        "Loss/traintotloss": rolling_loss / log_interval,
+                        "Loss/trainposloss": rolling_posloss / log_interval,
+                        "Loss/traineloss": rolling_eloss / log_interval,
+                        "Loss/trainevtloss": rolling_evtloss / log_interval,
+                    }
                     rolling_loss = 0.0
-                    run.log({"Loss/trainposloss": rolling_posloss / log_interval}, step=step_num)
                     rolling_posloss = 0.0
-                    run.log({"Loss/traineloss": rolling_eloss / log_interval}, step=step_num)
                     rolling_eloss = 0.0
-                    run.log({"Loss/trainevtloss": rolling_evtloss / log_interval}, step=step_num)
                     rolling_evtloss = 0.0
 
-                    trainmetric_monitor.reset()
-                    if trainmetric_monitor is not  None:
-                            trainmetric_monitor.update(predict=predict, truth=truth)
-                    if trainmetric_monitor is not None:
-                        trainmetric_monitor.compute(step_num)
+                    
 
 
                 loss.backward()
@@ -194,17 +197,20 @@ def train(
                 if scheduler is not None:
                     scheduler.step()
                     if log_this_step:
-                        run.log({"learning_rate": scheduler.get_last_lr()[0]}, step=step_num)
+                        train_logs["learning_rate"] = scheduler.get_last_lr()[0]
+                        #run.log({"learning_rate": scheduler.get_last_lr()[0]}, step=step_num)
                 # look at the metrics during train process
                 if log_this_step:
                     predict = model.output_unnormalise(predict)
                     truth = model.output_unnormalise(truth)
 
-                    trainmetric_monitor.reset()
                     if trainmetric_monitor is not  None:
-                            trainmetric_monitor.update(predict=predict, truth=truth)
-                    if trainmetric_monitor is not None:
-                        trainmetric_monitor.compute(step_num)
+                        trainmetric_monitor.update(predict=predict, truth=truth)
+                        monitor_data = trainmetric_monitor.compute(step_num)
+                        train_logs.update(monitor_data)
+                        trainmetric_monitor.reset()
+
+                    run.log(train_logs, step=step_num)
 
                 if step_num % val_num_steps == 0:
                     del inputs, truth, predict,loss
@@ -236,8 +242,8 @@ def train(
 
                     sub_epoch += 1
                 
-                if log_this_step:
-                    run.log({},step=step_num, commit=True)
+                #if log_this_step:
+                #    run.log({},step=step_num, commit=True)
             if first_dset_print:
                 print(f"Dataset size: {dset_size}")
                 first_dset_print = False

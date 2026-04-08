@@ -38,8 +38,8 @@ class PosEnergyRecoDataset(UprootMultiFileDataset):
 
             # Step 2: SNO+ Bronze Cuts (Manual Filtering)
             # Only process if fit is valid and it's the primary trigger
-            #if record["fitValid"] != 1 or record["evIndex"] != 0:
-            if record["evIndex"] != 0:
+            if record["fitValid"] != 1 or record["evIndex"] != 0:
+            #if record["evIndex"] != 0:
                 continue
             # rule out events if having invalid hittime 
             hit_times_np = record["hittimes"].to_numpy().astype(np.float32)
@@ -149,7 +149,7 @@ def collate_varlen(batch):
 def main():
     # Configuration
     data_path = "/data/snoplus2/weiiiii/electron_bismsb_0dot5_10/Ntuple/Bronze/37121*.ntuple.root"
-    truth_vars = ["mcPosx", "mcPosy", "mcPosz", "mcPosr", "mcEdepQuenched","mctime1"]
+    truth_vars = ["mcPosx", "mcPosy", "mcPosz", "mcPosr", "mcEdep","mctime1"]
 
     # 1. Initialize Dataset
     dataset = PosEnergyRecoDataset(

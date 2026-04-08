@@ -157,102 +157,69 @@ class PositionEnergyMonitor(MetricMonitor):
         self.n_points = 0
 
     def compute(self, global_step: int) -> None:
+        print("In compute")
+        wandb_logs = {}
+
+        # --- 1. Position Residuals ---
         fig, axis = plt.subplots()
         positions = ["x", "y", "z"]
         for hist, c in zip(self.posresidual_hists, positions):
-            #print("hist.values()",hist.values())
             axis.stairs(hist.values(), hist.axes[0].edges, label=c)
-
-        #axis.axvline(0, plt.rcParams["axes.linewidth"])
         axis.set_xlabel("Position residual (mm)")
         axis.set_ylabel("Counts")
         axis.legend()
+        wandb_logs[f"{self.name_prefix}/Plots/position_residuals"] = wandb.Image(fig)
+        plt.close(fig)
 
+        # --- 2. Energy Residuals ---
         efig, eaxis = plt.subplots()
-        e = ["Energy"]
-        for hist, c in zip(self.eresidual_hists, e):
-            eaxis.stairs(hist.values(), hist.axes[0].edges, label=c)
-
-        #eaxis.axvline(0, plt.rcParams["axes.linewidth"])
+        for hist in self.eresidual_hists:
+            eaxis.stairs(hist.values(), hist.axes[0].edges, label="Energy")
         eaxis.set_xlabel("Energy residual (MeV)")
         eaxis.set_ylabel("Counts")
         eaxis.legend()
-        #self.writer.add_figure(f"{self.name_prefix}/position_residuals", fig, global_step=global_step)
-        wandb_logs = {
-            f"{self.name_prefix}/position_residuals": wandb.Image(fig),
-            f"{self.name_prefix}/energy_residuals": wandb.Image(efig)
-        }
-
-        posresidual_bias = self.posresidual_sum / self.n_points
-        eresidual_bias = self.eresidual_sum / self.n_points
-        for bias, c in zip(posresidual_bias, positions):
-            wandb_logs[f"{self.name_prefix}/bias/{c}-mm"] = bias
-            #self.writer.add_scalar(f"{self.name_prefix}/bias/{c}-mm", bias, global_step=global_step)
-
-        #self.writer.add_scalar(f"{self.name_prefix}/bias/e-MeV", eresidual_bias.item(), global_step=global_step)
-        wandb_logs[f"{self.name_prefix}/bias/e-MeV"] = eresidual_bias.item()
-
-        posresidual_fwhm = [fwhm(hist.view(), hist.axes[0].edges) for hist in self.posresidual_hists]
-        eresidual_fwhm = [fwhm(self.eresidual_hists[0].view(), self.eresidual_hists[0].axes[0].edges) ]
-        for fwhm_value, c in zip(posresidual_fwhm, positions):
-            #self.writer.add_scalar(f"{self.name_prefix}/fwhm/{c}-mm", fwhm_value, global_step=global_step)
-            wandb_logs[f"{self.name_prefix}/fwhm/{c}-mm"] = fwhm_value
-        
-        
-        wandb_logs[f"{self.name_prefix}/fwhm/e-MeV"] = eresidual_fwhm
-
-        self.writer.log(wandb_logs, step=global_step)
-        #self.writer.add_scalar(f"{self.name_prefix}/fwhm/e-MeV", eresidual_fwhm[0], global_step=global_step)
-
-        plt.close(fig)
+        wandb_logs[f"{self.name_prefix}/Plots/energy_residuals"] = wandb.Image(efig)
         plt.close(efig)
 
-        r_fig, r_axis = plt.subplots(figsize=(10, 7))
+        # --- 3. Bias & FWHM (Scalars) ---
+        posresidual_bias = self.posresidual_sum / self.n_points
+        eresidual_bias = self.eresidual_sum / self.n_points
         
-        radial_fwhms = {}
+        for bias, c in zip(posresidual_bias, positions):
+            wandb_logs[f"{self.name_prefix}/bias/{c}-mm"] = float(bias)
+        wandb_logs[f"{self.name_prefix}/bias/e-MeV"] = float(eresidual_bias.item())
+
+        for hist, c in zip(self.posresidual_hists, positions):
+            val = fwhm(hist.view(), hist.axes[0].edges)
+            wandb_logs[f"{self.name_prefix}/fwhm/{c}-mm"] = float(val)
+        
+        # Fixed eresidual_fwhm to be a scalar float
+        val_e = fwhm(self.eresidual_hists[0].view(), self.eresidual_hists[0].axes[0].edges)
+        wandb_logs[f"{self.name_prefix}/fwhm/e-MeV"] = float(val_e)
+
+        # --- 4. Radial Distance Plots & Radial FWHM ---
+        r_fig, r_axis = plt.subplots(figsize=(10, 7))
         for (low, high), (key, hist) in zip(self.r_ranges, self.r_seg_e_hists.items()):
             label = f"{low}-{high} mm"
             r_axis.stairs(hist.values(), hist.axes[0].edges, label=label)
             
-            # 5. Calculate FWHM for each range
-            val = fwhm(hist.view(), hist.axes[0].edges)
-            radial_fwhms[f"{self.name_prefix}/fwhm/e_{key}_mm"] = val
+            # FIXED: Add FWHM directly to wandb_logs instead of a separate dict
+            val_r = fwhm(hist.view(), hist.axes[0].edges)
+            wandb_logs[f"{self.name_prefix}/fwhm/e_{key}_mm"] = float(val_r)
 
-        r_axis.set_xlabel("Energy residual (MeV)")
-        r_axis.set_ylabel("Counts")
         r_axis.set_title("Energy Residuals by Radial Distance")
         r_axis.legend()
-
-        # 6. Log everything to WandB
-        wandb_logs = {
-            f"{self.name_prefix}/energy_residuals_by_radius": wandb.Image(r_fig),
-            **radial_fwhms  # Merge the radial FWHM scalars into the log
-        }
-        
-        # ... [Merge your existing position/bias logs here] ...
-        
-        self.writer.log(wandb_logs, step=global_step)
+        wandb_logs[f"{self.name_prefix}/Plots/energy_residuals_by_radius"] = wandb.Image(r_fig)
         plt.close(r_fig)
 
+        # --- 5. Linearity/Resolution Curve ---
         if self.name_prefix == "validation_metrics":
-
-            true_e_centers = []
-            res_means = []
-            res_sigmas = []
-
-            # Iterate through our true energy slices
+            true_e_centers, res_means, res_sigmas = [], [], []
             for (low, high), (key, hist) in zip(self.e_true_ranges, self.e_seg_res_hists.items()):
                 counts = hist.values()
-                
-                # Ensure we have enough statistics to make a meaningful calculation
                 if np.sum(counts) > 30: 
                     bin_centers = hist.axes[0].centers
-                    
-                    # 1. Bias: Weighted average of the residuals
-                    # This captures the "center of mass" of the distribution
                     bias = np.average(bin_centers, weights=counts)
-                    
-                    # 2. Uncertainty: Convert FWHM to Sigma (1-sigma error bars)
                     full_width = fwhm(counts, hist.axes[0].edges)
                     sigma = full_width / 2.355
                     
@@ -260,37 +227,14 @@ class PositionEnergyMonitor(MetricMonitor):
                     res_means.append(bias)
                     res_sigmas.append(sigma)
 
-            # --- Plotting the Linearity/Resolution Curve ---
-            res_fig, res_axis = plt.subplots(figsize=(8, 6))
-            
-            # Use errorbar to show Mean Bias +/- 1 Sigma
-            res_axis.errorbar(
-                true_e_centers, 
-                res_means, 
-                yerr=res_sigmas, 
-                fmt='o', 
-                color='black', 
-                ecolor='blue', 
-                capsize=4, 
-                elinewidth=1.2,
-                markerfacecolor='white',
-                label=r"Mean Residual $\pm 1\sigma$"
-            )
-            
-            # Reference line for perfect reconstruction
-            res_axis.axhline(0, color='red', linestyle='--', linewidth=1, label="Ideal Recon")
-            
-            res_axis.set_xlabel("True Energy (MeV)")
-            res_axis.set_ylabel("Energy Residual (MeV)")
-            res_axis.set_title("Energy Reconstruction Bias and Resolution")
-            res_axis.set_ylim(-1.5, 1.5)  # Zoom in on the bias region
-            res_axis.grid(True, linestyle=':', alpha=0.6)
-            res_axis.legend()
+            if true_e_centers:
+                res_fig, res_axis = plt.subplots(figsize=(8, 6))
+                res_axis.errorbar(true_e_centers, res_means, yerr=res_sigmas, fmt='o', color='black')
+                res_axis.axhline(0, color='red', linestyle='--')
+                res_axis.set_title("Energy Reconstruction Bias and Resolution")
+                wandb_logs[f"{self.name_prefix}/Plots/energy_residual_vs_trueE"] = wandb.Image(res_fig)
+                plt.close(res_fig)
 
-            # Final Log to WandB
-            # (Make sure to combine this with your other wandb_logs dict if calling once)
-            self.writer.log({
-                f"{self.name_prefix}/energy_residual_vs_trueE": wandb.Image(res_fig)
-            }, step=global_step)
-            
-            plt.close(res_fig)
+        # --- FINAL SINGLE LOG CALL ---
+        return wandb_logs
+        #self.writer.log(wandb_logs, step=global_step)

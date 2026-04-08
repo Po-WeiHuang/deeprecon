@@ -131,7 +131,7 @@ class ReconDecoder(nn.Module):
         self.net = nn.Sequential(
             nn.Linear(embed_dim, hidden_dim),
             nn.GELU(),
-            nn.LayerNorm(hidden_dim),
+            #nn.LayerNorm(hidden_dim),
             nn.Linear(hidden_dim, output_dim)
         )
 

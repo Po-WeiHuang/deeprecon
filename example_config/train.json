@@ -3,17 +3,17 @@
     "class_path": "model.hitsrecon.SNOPosEnegyRecon",
     "init_args": {
       "num_heads": 4,
-      "num_layers": 6,
+      "num_layers": 2,
       "n_pmts": 9728,
       "d_model": 64,
-      "ff_dim": 512,
+      "ff_dim": 128,
       "dropout": 0.2
     }
   },
   "train": {
     "seed": 801,
     "project": "TrainRecon",
-    "name": "TrainRecon_dominantenergyloss_jittermctime_512_midlayer_embedding_6EncoderLayers_Dropout20_ReduceLR_twohidlayerdecoder_1e-3wgtdecay",
+    "name": "OnelayDec_TwoLayerEnc_FitValidPerData",
     "entity": "po-wei-huang-university-of-oxford",
     "tags": "March",
     "wandbcachepath": "/data/snoplus2/weiiiii/uv/deeprecon/wandb_logs",
@@ -29,15 +29,15 @@
         "dataset": {
           "class_path": "utils.datasets.PosEnergyRecoDataset",
           "init_args": {
-            "file_paths": "/data/snoplus2/weiiiii/electron_bismsb_0dot5_10/Ntuple/Bronze/*ntuple.root",
+            "file_paths": "/data/snoplus2/weiiiii/electron_bismsb_0dot5_10/Ntuple/Perfect/*ntuple.root",
             "tree_name": "output",
             "truth_expressions": ["mcPosx", "mcPosy", "mcPosz", "mcPosr", "mcEdepQuenched", "mctime1"],
             "buffer_size": 10000,
             "cache": true
           }
         },
-        "batch_size": 1024,
-        "num_workers": 32,
+        "batch_size": 512,
+        "num_workers": 16,
         "shuffle": false,
         "pin_memory": true
       }
@@ -49,15 +49,15 @@
         "dataset": {
           "class_path": "utils.datasets.PosEnergyRecoDataset",
           "init_args": {
-            "file_paths": "/data/snoplus2/weiiiii/electron_bismsb_0dot5_10/ValNtuple/ValBronze/*.ntuple.root",
+            "file_paths": "/data/snoplus2/weiiiii/electron_bismsb_0dot5_10/ValNtuple/ValPerfect/*.ntuple.root",
             "tree_name": "output",
             "truth_expressions": ["mcPosx", "mcPosy", "mcPosz", "mcPosr", "mcEdepQuenched", "mctime1"],
             "buffer_size": 10000,
             "cache": true
           }
         },
-        "batch_size": 8192,
-        "num_workers": 8,
+        "batch_size": 1024,
+        "num_workers": 16,
         "shuffle": false,
         "pin_memory": true
       }
@@ -68,7 +68,7 @@
       "class_path": "torch.optim.AdamW",
       "init_args": {
         "lr": 0.0003,
-        "weight_decay": 0.001,
+        "weight_decay": 0.005,
         "betas": [0.9, 0.98],
         "eps": 1e-09
       }
